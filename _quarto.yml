@@ -1,0 +1,40 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "SQL handbook"
+  favicon: "SQL-Database.png"
+  navbar:
+    logo: "SQL-Database.png"
+    left:
+      - href: index.qmd
+        text: Home
+      - href: code.qmd
+        text: Code
+  
+      
+    right:
+      - text: "中文"
+        href: https://www.bing.com
+
+  page-footer:
+    right: "This blog is built with ❤️ and [Quarto](https://quarto.org/)."
+    
+format:
+  html:
+    theme:   
+      light: cosmo
+      dark: darkly
+    css: styles.css
+    grid:
+      body-width: 900px
+      margin-width: 300px
+      gutter-width: 1.5rem
+
+
+resources:
+  - "output_data/*"
+
+filters:
+  - foldableCodeBlcok.lua
