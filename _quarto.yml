@@ -3,6 +3,13 @@ project:
   output-dir: docs
 
 website:
+  comments:
+    giscus:
+      repo: JCfly3000/into_sql
+      theme:
+        light: light # giscus theme used for light website theme
+        dark: dark_dimmed # giscus theme used for dark website theme
+
   title: "SQL handbook"
   favicon: "SQL-Database.png"
   navbar:
