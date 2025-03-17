@@ -6,6 +6,7 @@ author: "Tony Duan"
 execute:
   warning: false
   error: false
+  
 format:
   html:
     toc: true
@@ -16,7 +17,38 @@ format:
     code-block-bg: true
     code-block-border-left: "#31BAE9"
     
+    
+engine: knitr
 ---
+
+
+```{r}
+
+Sys.setenv(RETICULATE_PYTHON = "/Library/Frameworks/Python.framework/Versions/3.11/bin/python3.11")
+library(reticulate)
+use_python("/Library/Frameworks/Python.framework/Versions/3.11/bin/python3.11")
+```
+
+Using python 3.11 for siuba pacakege
+
+```{python}
+
+from platform import python_version
+print(python_version())
+```
+
+```{python}
+import os
+os.system('pip show pandas')
+```
+
+
+```{python}
+import os
+os.system('pip show siuba')
+```
+
+
 
 
 ```{r}
@@ -28,10 +60,28 @@ library(tidyverse)
 library(RSQLite)
 library(connections)
 library(duckdb)
+```
 
-mtcars=cbind(model_name = rownames(mtcars), mtcars)
+```{r}
+#| code-fold: true
+#| output: false
+# set up R data
+rm(mtcars) 
+mtcars=cbind(model_name = rownames(mtcars), mtcars) |> head(10)
+iris=iris|> head(10)
+```
 
+```{python}
+#| code-fold: true
+#| output: false
+# set up Python data
+mtcars=r.mtcars
+iris=r.iris
+```
 
+```{r}
+#| code-fold: true
+#| output: false
 if (file.exists("my-db.duckdb")) {file.remove("my-db.duckdb")
   }
 #con <- dbConnect(duckdb(), dbdir = "my-db.duckdb", read_only = TRUE)
@@ -41,80 +91,348 @@ dbWriteTable(con, "iris_table", iris,overwrite = TRUE)
 dbWriteTable(con, "mtcars_table", mtcars,overwrite = TRUE)
 ```
 
+- There are table `iris_table` and `mtcars_table` in duckdb `my-db.duckdb`
 
-There are table `iris_table` and `mtcars_table` in duckdb `my-db.duckdb`
+- There are table `iris` and `mtcars` R environment
 
+- There are table `iris` and `mtcars` Python environment
 
 # show all table
+
+::: panel-tabset
+
+## sql
 
 ```{sql}
 #| connection: con
 SHOW ALL TABLES;
 ```
 
-# show column name in table
+## R
+
+```{r}
+dflist <- Filter(is.data.frame, as.list(.GlobalEnv))
+names(dflist)
+```
+
+## Python
+
+```{python}
+import pandas as pd
+alldfs = [var for var in dir() if isinstance(eval(var), pd.core.frame.DataFrame)]
+print(alldfs)
+```
+
+:::
+
+
+# Describe a table
+
+::: panel-tabset
+## sql
 
 ```{sql}
 #| connection: con
 DESCRIBE mtcars_table;
 ```
 
+## R
+
+```{r}
+skimr::skim(mtcars)
+```
+
+## Python
+
+```{python}
+mtcars.describe(include='all')
+```
+
+::: 
+
+
+# show column name
+
+::: panel-tabset
+## sql
+
+
+
+```{sql}
+#| connection: con
+PRAGMA table_info(mtcars_table);
+```
+
+## R
+
+```{r}
+names(mtcars)
+```
+
+## Python
+
+```{python}
+import pandas as pd
+list(mtcars.columns.values)
+```
+:::
+
 # select
 
-## select top 6 and rename 
+
+## select top 6 and rename
+
+::: panel-tabset
+## sql
 
 ```{sql}
 #| connection: con
 SELECT model_name as model,mpg,cyl from mtcars_table limit 6 ;
 ```
 
+## R
+
+```{r}
+head(mtcars,6) |> select(model=model_name,mpg,cyl)
+```
+
+## Python
+
+```{python}
+mtcars.rename(columns={'model_name': 'model'})
+```
+
+
+## Python siuba
+
+```{python}
+from siuba import *
+mtcars >> rename(model=_.model_name) >> select(_.model, _.mpg, _.cyl) >> head(6)
+```
+
+:::
+
 ## select distinct
 
-
 all distinct record of mpg and cyl
+
+::: panel-tabset
+
+## sql
+
 ```{sql}
 #| connection: con
 SELECT distinct mpg,cyl from mtcars_table;
 ```
-## select distinct on 
 
-all distinct record of  cyl
+## R
+
+```{r}
+mtcars |> distinct(mpg,cyl)
+```
+
+
+## Python
+
+```{python}
+df=mtcars[["mpg", "cyl"]]
+print(df.drop_duplicates())
+```
+
+## Python siuba
+
+```{python}
+mtcars >> distinct(_.mpg, _.cyl)
+```
+
+
+::: 
+
+# check row number and column number
+
+
+::: panel-tabset
+
+## sql
+
 
 ```{sql}
 #| connection: con
-SELECT distinct on (cyl) mpg ,cyl from mtcars_table;
+/*Gives number of rows*/
+SELECT count(*) as row_number from mtcars_table;
 ```
+
+```{sql}
+#| connection: con
+/*Gives number of columns*/
+select count(*) as column_number from (DESCRIBE mtcars_table);
+```
+
+
+## R
+```{r}
+# Gives number of rows
+nrow(mtcars) 
+```
+
+
+```{r}
+ # Gives number of columns
+ncol(mtcars) 
+```
+
+## Python
+
+```{python}
+# Gives number of rows
+mtcars.shape[0]
+```
+
+```{python}
+# Gives number of columns
+mtcars.shape[1] 
+```
+
+:::
 
 # create column
 
+::: panel-tabset
 
+## sql
 ```{sql}
 #| connection: con
-SELECT model_name as model,mpg,cyl, mpg+1 as new_mpg from mtcars_table limit 6 ;
+SELECT *, mpg+1 as new_mpg from mtcars_table;
 ```
+
+## R
+```{r}
+mtcars |> mutate(new_mpg=mpg+1)
+```
+
+
+## Python
+
+```{python}
+mtcars["new_mpg"]=mtcars["mpg"]+1
+mtcars
+```
+
+## Python siuba
+
+```{python}
+mtcars >> mutate(new_mpg=_.mpg+1)
+```
+
+:::
+
 
 
 # Filter
 
+::: panel-tabset
+
+## sql
 
 ```{sql}
 #| connection: con
-SELECT model_name as model,mpg,cyl from mtcars_table where mpg=21;
+/* and */
+SELECT * from mtcars_table where mpg=21 and cyl=6;
 ```
+
+```{sql}
+#| connection: con
+/* or */
+SELECT * from mtcars_table where mpg=21 or cyl=6;
+```
+
+
+## R
+
+```{r}
+# and
+mtcars |> filter(mpg==21&cyl==6)
+```
+
+```{r}
+# or
+mtcars |> filter(mpg==21|cyl==6)
+```
+
+
+## Python
+
+
+```{python}
+# and
+mtcars.query('mpg==21 and cyl==6')
+```
+
+
+```{python}
+# or
+mtcars.query('mpg==21 or cyl==6')
+```
+## Python siuba
+
+```{python}
+# and
+mtcars >> filter(_.mpg==21,_.cyl==6)
+```
+```{python}
+# or
+mtcars >> filter((_.mpg==21) |(_.cyl==6))
+```
+
+
+::: 
 
 
 
 # order
 
 
+::: panel-tabset
+
+## sql
+
 ```{sql}
 #| connection: con
 SELECT model_name as model,mpg,cyl from mtcars_table order by mpg desc limit 3;
 ```
 
-# group by 
+## R  
+
+```{r}
+mtcars |> select(model=model_name,mpg,cyl) |> arrange(desc(mpg)) |> head(3)
+```
 
 
+
+
+## Python
+
+```{python}
+mtcars[["model_name","mpg","cyl"]].sort_values(by='mpg',ascending=False).head(3)
+```
+
+## Python siuba
+
+```{python}
+mtcars >> select(_.model_name,_.mpg,_.cyl) >> arrange(-_.mpg) >> head(3)
+```
+
+
+::: 
+
+
+
+# group by
+
+
+::: panel-tabset
+
+## sql
 ```{sql}
 #| connection: con
 SELECT model_name, sum(mpg) as total_mpg,mean(cyl) as cyl_mean from mtcars_table
@@ -122,9 +440,31 @@ group by 1 limit 5
 ;
 ```
 
+## R
+
+```{r}
+mtcars |> group_by(model_name) |> summarise(total_mpg=sum(mpg),cyl_mean=mean(cyl)) |> head(5)
+```
+
+## Python
+
+```{python}
+mtcars.groupby('model_name').agg({'mpg': 'sum', 'cyl': 'mean'}).head(5)
+```
 
 
-# create table 
+## Python siuba
+
+```{python}
+mtcars >> group_by(_.model_name) >> summarize(total_mpg=_.mpg.sum(),cyl_mean=_.cyl.mean()) >> head(5)
+```
+
+
+::: 
+
+
+
+# create table
 
 ## CREATE OR REPLACE
 
@@ -138,7 +478,7 @@ group by 1
 ;
 ```
 
-## CREATE TABLE IF NOT EXISTS 
+## CREATE TABLE IF NOT EXISTS
 
 will only proceed with the creation of the table if it does not already exist. If the table already exists, no action will be taken and the existing table will remain in the database.
 
@@ -149,7 +489,6 @@ SELECT model_name, sum(mpg) as total_mpg,mean(cyl) as cyl_mean from mtcars_table
 group by 1
 ;
 ```
-
 
 # unique
 
@@ -163,17 +502,16 @@ SELECT count(*),count(distinct model_name) from mtcars_table
 
 # join
 
-
-
 ```{sql}
 #| connection: con
 SELECT  * from mtcars_table_group t1 ;
 ```
 
+## left join
 
-## left join 
+::: panel-tabset
 
-
+# sql
 ```{sql}
 #| connection: con
 SELECT t1.model_name,t1.mpg ,t1.cyl,t2.* from mtcars_table t1 
@@ -182,7 +520,36 @@ limit 5
 ;
 ```
 
+# R
+
+```{r}
+mtcars |> left_join(mtcars, by = join_by(model_name == model_name)) |> head(5)
+```
+
+# Python
+
+```{python}
+pd.merge(mtcars, mtcars, left_on='model_name', right_on='model_name', how='left').head(5)
+```
+
+
+# Python siuba
+
+```{python}
+mtcars >> left_join(_,mtcars, on = {"model_name": "model_name"}) >> head(5)
+```
+
+
+
+::: 
+
+
+
 ## inter join
+
+::: panel-tabset
+
+# sql
 
 ```{sql}
 #| connection: con
@@ -192,22 +559,45 @@ inner join (select * from mtcars_table_group limit 5) t2 on t1.model_name = t2.m
 ```
 
 
+# R
 
+```{r}
+mtcars |> inner_join(mtcars, by = join_by(model_name == model_name)) |> head(5)
+```
+
+# Python
+
+```{python}
+pd.merge(mtcars, mtcars, left_on='model_name', right_on='model_name', how='inner').head(5)
+```
+
+
+# Python siuba
+
+```{python}
+mtcars >> inner_join(_,mtcars, on = {"model_name": "model_name"}) >> head(5)
+```
+
+
+
+::: 
 
 
 
 
 # append rows
 
+## append without duplicate elimination `union all`
 
-## append without duplicate elimination `union`
+::: panel-tabset
+
+### sql
 
 ```{sql}
 #| connection: con
 SELECT count(*) from mtcars_table
 ;
 ```
-
 
 ```{sql}
 #| connection: con
@@ -218,7 +608,6 @@ SELECT * from mtcars_table
 ;
 ```
 
-
 ```{sql}
 #| connection: con
 SELECT count(*) from double_mtcars_table
@@ -226,23 +615,40 @@ SELECT count(*) from double_mtcars_table
 ```
 
 
-## append with duplicate elimination `union all`
-```{sql}
-#| connection: con
-SELECT count(*) from mtcars_table
-;
+### R
+
+```{r}
+mtcars %>% bind_rows(mtcars)
 ```
 
+
+
+### Python
+
+```{python}
+pd.concat([mtcars,mtcars],ignore_index=True)
+```
+
+
+
+:::
+
+
+
+## append with duplicate elimination `union`
+
+::: panel-tabset
+
+### sql
 
 ```{sql}
 #| connection: con
 CREATE OR REPLACE temp table double_mtcars_table as
 SELECT * from mtcars_table 
-union all
+union
 SELECT * from mtcars_table 
 ;
 ```
-
 
 ```{sql}
 #| connection: con
@@ -259,10 +665,31 @@ SELECT distinct * from double_mtcars_table
 ```
 
 
+### R
+
+```{r}
+mtcars %>% bind_rows(mtcars) |> distinct()
+```
+
+
+
+### Python
+
+```{python}
+pd.concat([mtcars,mtcars],ignore_index=True).drop_duplicates()
+```
+
+
+:::
+
+
+
 
 # delete rows
 
+::: panel-tabset
 
+## sql
 ```{sql}
 #| connection: con
 DELETE FROM mtcars_table WHERE model_name = 'Mazda RX4';
@@ -273,10 +700,37 @@ DELETE FROM mtcars_table WHERE model_name = 'Mazda RX4';
 #| connection: con
 select count(*) from mtcars_table
 ;
+
 ```
+
+## R
+
+```{r}
+mtcars |> filter(model_name != 'Mazda RX4')
+```
+
+
+## Python
+
+```{python}
+mtcars[mtcars['model_name'] != 'Mazda RX4']
+```
+
+
+## Python siuba
+
+```{python}
+mtcars >> filter(_.model_name != 'Mazda RX4')
+```
+
+
+:::
 
 # update rows
 
+::: panel-tabset
+
+## sql
 ```{sql}
 #| connection: con
 select model_name,mpg  from mtcars_table where model_name= 'Mazda RX4'
@@ -291,15 +745,37 @@ WHERE model_name= 'Mazda RX4'
 ;
 ```
 
-
 ```{sql}
 #| connection: con
 select model_name,mpg from mtcars_table where model_name= 'Mazda RX4'
 ;
 ```
 
-# drop table
+## R
 
+```{r}
+mtcars |> filter(model_name == 'Mazda RX4 Wag') |> mutate(mpg=999)
+```
+
+
+## Python
+
+```{python}
+mtcars.loc[mtcars['model_name'] == 'Mazda RX4 Wag', 'mpg'] = 999
+mtcars
+```
+
+
+## Python siuba
+
+```{python}
+mtcars >> filter(_.model_name == 'Mazda RX4 Wag') >> mutate(mpg=999)
+```
+
+
+:::
+
+# drop table
 
 Before drop
 
@@ -322,12 +798,9 @@ after drop
 SHOW ALL TABLES;
 ```
 
-
 # PIVOT
 
-
 long to wide
-
 
 ```{sql}
 #| connection: con
@@ -354,8 +827,8 @@ SELECT *
 FROM cities;
 ```
 
-
 ## PIVOT on one column
+
 ```{sql}
 #| connection: con
 PIVOT cities
@@ -365,6 +838,7 @@ GROUP BY country;
 ```
 
 ## PIVOT on two column
+
 ```{sql}
 #| connection: con
 PIVOT cities
@@ -372,11 +846,9 @@ ON country, name
 USING sum(population);
 ```
 
-
 # unpivot
 
 wide to long
-
 
 ```{sql}
 #| connection: con
@@ -394,12 +866,10 @@ INTO
 ;
 ```
 
-
 # EXPLAIN
 
-
-
 ```{sql}
+#| eval: false
 #| connection: con
 EXPLAIN 
 SELECT t1.model_name,t1.mpg ,t1.cyl,t2.* from mtcars_table t1 
@@ -408,6 +878,7 @@ inner join (select * from mtcars_table limit 5) t2 on t1.model_name = t2.model_n
 ```
 
 ```{sql}
+#| eval: false
 #| connection: con
 EXPLAIN ANALYZE 
 SELECT t1.model_name,t1.mpg ,t1.cyl,t2.* from mtcars_table t1 
@@ -415,19 +886,38 @@ inner join (select * from mtcars_table limit 5) t2 on t1.model_name = t2.model_n
 ;
 ```
 
-
-
 ```{r}
 dbDisconnect(con, shutdown=TRUE)
 ```
+
+
+# Display beautiful table
+
+in R and Python using GT package
+
+::: panel-tabset
+
+## R
+```{r}
+library(gt)
+mtcars |> gt() 
+```
+
+## Python
+
+```{python}
+from great_tables import GT
+GT(mtcars)
+```
+
+
+:::
+
+
 
 
 # reference:
 
 https://duckdb.org/docs/stable/clients/r.html
 
-
 https://duckdb.org/docs/stable/sql/statements
-
-
-
