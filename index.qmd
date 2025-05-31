@@ -1,5 +1,5 @@
 ---
-title: "SQL handbook"
+title: "AI handbook"
 ---
 
 This is a Quarto website.

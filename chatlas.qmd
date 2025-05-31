@@ -1,0 +1,86 @@
+---
+title: "chatlas LLM pacakge for Python"
+
+execute:
+  warning: false
+  error: false
+
+  
+format:
+  html:
+    toc: true
+    toc-location: right
+    code-fold: show
+    code-tools: true
+    number-sections: true
+    code-block-bg: true
+    code-block-border-left: "#31BAE9"
+---
+
+chatlas provides a simple and unified interface across large language model (llm) providers in Python. 
+
+![](https://posit-dev.github.io/chatlas/images/logo.png){width="260"}
+
+
+```{bash}
+#| eval: false
+pip3 install -U chatlas
+pip3 install -q -U google-genai
+pip3 install shiny
+pip3 install keyring
+```
+
+```{python}
+from chatlas import ChatGoogle,token_usage
+import keyring
+```
+
+# Google gemini
+
+```{python}
+from chatlas import ChatGoogle
+
+chat_google_model = ChatGoogle(
+  model = "gemini-2.0-flash",
+  api_key=keyring.get_password("system", "google_ai_api_key"),
+  system_prompt = "You are a IT expert",
+)
+
+chat_google_model
+```
+
+```{python}
+result=chat_google_model.chat("What preceding languages most influenced Python?")
+result
+```
+
+# Interactive mode
+
+```{python}
+#chat_google_model.app()
+```
+
+# console mode
+
+```{python}
+#chat_google_model.console()
+```
+
+# vision
+
+
+
+# structured output
+
+
+# tool calling
+
+```{bash}
+
+```
+
+
+
+# reference
+
+https://ellmer.tidyverse.org/
