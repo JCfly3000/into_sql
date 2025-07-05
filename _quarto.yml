@@ -44,3 +44,16 @@ resources:
 
 filters:
   - foldableCodeBlcok.lua
+
+babelquarto:
+  languagecodes:
+  - name: cn
+    text: "中文"
+  - name: en
+    text: "EN"
+  mainlanguage: 'en'
+  languages: ['cn']
+title-cn: title in cn
+description-cn: description in cn
+author-cn: author in cn
+lang: en
