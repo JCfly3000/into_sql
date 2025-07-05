@@ -18,13 +18,10 @@ website:
     left:
       - href: index.qmd
         text: Home
-      - href: code.qmd
-        text: Code
+
   
       
-    right:
-      - text: "中文"
-        href: https://www.bing.com
+
 
   page-footer:
     right: "This blog is built with ❤️ and [Quarto](https://quarto.org/)."
